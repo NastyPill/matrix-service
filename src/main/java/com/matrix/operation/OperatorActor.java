@@ -35,13 +35,13 @@ public class OperatorActor extends AbstractActor {
 
 
     public void handleNewWorkMessage(NewWorkMessage message) {
-        long currentMillis = System.currentTimeMillis();
+        long currentMillis = System.nanoTime();
         if (!isNull(message.getOrder())) {
             LOG.trace("New work message with size: {}", message.getOrder().getRequests().size());
             LOG.trace("Sender: {}", this.getSender());
             stateActor.tell(new ChangeStateMessage(message.getOrder().getRequests()), getSelf());
             this.getSender().tell(WorkReportMessage.builder()
-                            .time(System.currentTimeMillis() - currentMillis)
+                            .time(System.nanoTime() - currentMillis)
                             .requestCount(message.getOrder().getRequests().size())
                             .build()
                     , getSelf());

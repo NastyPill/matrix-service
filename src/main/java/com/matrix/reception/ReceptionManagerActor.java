@@ -3,6 +3,7 @@ package com.matrix.reception;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import com.matrix.monitoring.MonitoringActor;
 import com.matrix.operation.message.OperatorStartMessage;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -39,20 +40,21 @@ public class ReceptionManagerActor extends AbstractActor {
         LOG.info("HandleStartSystemMessage");
         ActorRef consumer = null;
         ActorRef dispatcher;
+        ActorRef monitoring = initMonitoring();
         try {
             consumer = initConsumer();
         } catch (Exception e) {
             LOG.error("Failed to initConsumer: {}", e.toString());
         }
-        dispatcher = initDispatcher(consumer, msg.getOperator());
+        dispatcher = initDispatcher(consumer, msg.getOperator(), monitoring);
         while (true) {
             Thread.sleep(1000);
             dispatcher.tell("", ActorRef.noSender());
         }
     }
 
-    private ActorRef initDispatcher(ActorRef consumer, ActorRef operator) {
-        return context().actorOf(DispatcherActor.props(consumer, operator), "dispatcher");
+    private ActorRef initDispatcher(ActorRef consumer, ActorRef operator, ActorRef monitoring) {
+        return context().actorOf(DispatcherActor.props(consumer, operator, monitoring), "dispatcher");
     }
 
     private ActorRef initConsumer() throws IOException, TimeoutException {
@@ -62,6 +64,10 @@ public class ReceptionManagerActor extends AbstractActor {
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
         return context().actorOf(ConsumerActor.props(channel), "consumer");
+    }
+
+    private ActorRef initMonitoring() {
+        return context().actorOf(MonitoringActor.props());
     }
 
 }

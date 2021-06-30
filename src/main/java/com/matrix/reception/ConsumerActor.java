@@ -55,7 +55,7 @@ public class ConsumerActor extends AbstractActor {
     private void handleGetOrdersMessage(GetOrdersMessage getOrdersMessage) {
         try {
 
-            LOG.info("Message queue size is CONSUMER: {}", String.valueOf(orderQueue.size()));
+            LOG.trace("Message queue size is CONSUMER: {}", String.valueOf(orderQueue.size()));
             int size = orderQueue.size();
             for (int i = 0; i < size; i++) {
                 getOrdersMessage.getOrders().add(orderQueue.poll());

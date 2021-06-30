@@ -21,10 +21,12 @@ public class DispatcherActor extends AbstractActor {
     private final Queue<Order> orderQueue;
     private final ActorRef consumer;
     private final ActorRef operator;
+    private final ActorRef monitoring;
 
-    public DispatcherActor(ActorRef consumer, ActorRef operator) {
+    public DispatcherActor(ActorRef consumer, ActorRef operator, ActorRef monitoring) {
         this.consumer = consumer;
         this.operator = operator;
+        this.monitoring = monitoring;
         this.orderQueue = new LinkedList<>();
         startWork();
     }
@@ -39,8 +41,8 @@ public class DispatcherActor extends AbstractActor {
         LOG.info("Dispatcher was started");
     }
 
-    public static Props props(ActorRef consumer, ActorRef operator) {
-        return Props.create(DispatcherActor.class, consumer, operator);
+    public static Props props(ActorRef consumer, ActorRef operator, ActorRef monitoring) {
+        return Props.create(DispatcherActor.class, consumer, operator, monitoring);
     }
 
     @Override
@@ -52,7 +54,8 @@ public class DispatcherActor extends AbstractActor {
     }
 
     private void handleWorkReportMessage(WorkReportMessage msg) {
-        LOG.info("Report from operator, QUEUE: {}", orderQueue.size());
+        LOG.trace("Report from operator, QUEUE: {}", orderQueue.size());
+        monitoring.tell(msg, getSelf());
         if(orderQueue.isEmpty()) {
             sendGetOrdersMessage();
         } else {
@@ -61,17 +64,17 @@ public class DispatcherActor extends AbstractActor {
     }
 
     private void sendGetOrdersMessage() {
-        LOG.info("Get orders from consumer, dispQueueSize: {}", orderQueue.size());
+        LOG.trace("Get orders from consumer, dispQueueSize: {}", orderQueue.size());
         consumer.tell(new GetOrdersMessage(new LinkedList<>()), this.getSelf());
     }
 
     private void sendNewWorkMessage() {
-        LOG.info("NEW WORK MESSAGE : {}", orderQueue.size());
+        LOG.trace("NEW WORK MESSAGE : {}", orderQueue.size());
         operator.tell(new NewWorkMessage(orderQueue.poll()), getSelf());
     }
 
     private void handleGetOrdersMessage(GetOrdersMessage getOrdersMessage) {
-        LOG.info("RECEIVED: {} orders", getOrdersMessage.getOrders().size());
+        LOG.trace("RECEIVED: {} orders", getOrdersMessage.getOrders().size());
         if(!getOrdersMessage.getOrders().isEmpty()) {
             orderQueue.addAll(getOrdersMessage.getOrders());
             LOG.trace("Current dispatcher queue size is: {}", orderQueue.size());
